@@ -91,39 +91,81 @@ if ( ! function_exists( 'hello_elementor_setup' ) ) {
 
 add_action( 'after_setup_theme', 'hello_elementor_setup' );
 
-
 add_action('woocommerce_cart_calculate_fees', 'add_shipping_fee_with_tax');
 
 function add_shipping_fee_with_tax() {
-	// Access the form-encoded data
-    // $postcode = isset($_POST['postcode']) ? $_POST['postcode'] : '';
-    // $latitude = isset($_POST['latitude']) ? $_POST['latitude'] : '';
-    // $longitude = isset($_POST['longitude']) ? $_POST['longitude'] : '';
-	// //print_r($_POST);
+	
+    $fee_amount = WC()->session->get('custom_shipping_fee', 0);
 
-    // // Example: Add fee to cart
-    // $fee_amount = 4;
-    // WC()->cart->add_fee('Shipping Fee', $fee_amount);
-
-	// if($postcode && $latitude && $longitude) {
-	// 	echo $postcode . $latitude . $longitude;
-	// }
-
-
+	if ($fee_amount > 0) {
+        WC()->cart->add_fee(__('Shipping Fee', 'checkout-wc'), $fee_amount);
+    }
 }
 
+add_action('wp_ajax_checkout_after_customer_save', 'calculate_ship_fee');
 
-add_action('cfw_update_checkout_after_customer_save', 'update_frete_in_cart');
+function get_distance_ors($origin, $destination) {
+    $api_key = "5b3ce3597851110001cf62483c25fd55fd6f48428c63be3bc8bb9d22";
+    $url = "https://api.openrouteservice.org/v2/directions/driving-car";
 
-function update_frete_in_cart($data) {
+    $body = json_encode([
+        'coordinates' => [$origin, $destination], // [longitude, latitude]
+        'instructions' => false
+    ]);
 
+    $response = wp_remote_post($url, [
+        'method'    => 'POST',
+        'headers'   => [
+            'Content-Type'  => 'application/json',
+            'Authorization' => $api_key
+        ],
+        'body'      => $body,
+        'timeout'   => 15,
+    ]);
 
-	//echo 'here';
-	//WC()->cart->calculate_fees();
+    if (is_wp_error($response)) {
+        return null;
+    }
 
-	//return json_encode(array("message" => "success"), 200);
+    $data = json_decode(wp_remote_retrieve_body($response), true);
+
+    if (!isset($data['routes'][0]['summary']['distance'])) {
+        return null;
+    }
+
+    $distance_km = $data['routes'][0]['summary']['distance'] / 1000;
+    return round($distance_km * 0.621371, 1); 
 }
 
+function estimate_ship_fee($miles) {
+    if ($miles > 8) return 12.50;
+    if ($miles > 7) return 11.50;
+    if ($miles > 6) return 10.50;
+    if ($miles > 5) return 9.50;
+    if ($miles > 4) return 8.20;
+    if ($miles > 3) return 7.20;
+    if ($miles > 2.5) return 6.00;
+	if($miles > 1.5) return 5.50;
+    return 0;
+}
+
+function calculate_ship_fee() {
+	$origin_latitude = 51.59773;
+	$origin_longitude = -0.09055;
+
+    $dest_latitude = $_POST['latitude'];
+	$dest_longitude = $_POST['longitude'];
+
+	$distance_miles = get_distance_ors([$origin_longitude, $origin_latitude], [$dest_longitude, $dest_latitude]);
+	$ship_fee = estimate_ship_fee($distance_miles);
+
+	WC()->session->set('custom_shipping_fee', $ship_fee);
+	WC()->cart->calculate_fees();
+
+    $response = array('success' => true, 'message' => 'Shipping Updated', 'fee' => $ship_fee . 'distance_miles' . $distance_miles);
+    wp_send_json($response);
+    exit();
+}
 	
 function hello_maybe_update_theme_version_in_db() {
 	$theme_version_option_name = 'hello_theme_version';
