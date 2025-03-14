@@ -1,0 +1,16 @@
+# Translation of Child Theme - Checkout Extend
+# This file is distributed under the same license as the Child Theme - Checkout Extend
+msgid ""
+msgstr ""
+"PO-Revision-Date: 2025-03-14 10:51:16+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n > 1;\n"
+"X-Generator: GlotPress/4.0.1\n"
+"Language: pt_BR\n"
+"Project-Id-Version: Child Theme - Checkout Extend\n"
+
+#: functions.php:22
+msgid "Shipping Fee"
+msgstr "Frete"

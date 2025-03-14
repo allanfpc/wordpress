@@ -151,10 +151,20 @@
 
     window.selectAddress = function (address) {
       const userLanguage = navigator.language || navigator.userLanguage;
+      const addressField = document.querySelector("#shipping_address_1");
+      const cityField = document.querySelector("#shipping_city");
 
-      document.querySelector("#shipping_address_1").value =
+      if(addressField) {
+        addressField.value =
         address.line_1 + (address.line_2 ? ", " + address.line_2 : "");
-      document.querySelector("#shipping_city").value = userLanguage === 'pt-BR' ? 'Londres' : 'London';
+        addressField.dispatchEvent(new Event("input"));
+      }
+      
+      if(cityField) {
+        cityField.value = userLanguage === 'pt-BR' ? 'Londres' : 'London';
+        cityField.dispatchEvent(new Event("input"));
+      }
+
       suggestionsContainer.style.display = "none";
     };
 
