@@ -95,11 +95,13 @@ add_action('woocommerce_cart_calculate_fees', 'add_shipping_fee_with_tax');
 
 function add_shipping_fee_with_tax() {
 	
-    $fee_amount = WC()->session->get('custom_shipping_fee', 0);
-
-	if ($fee_amount > 0) {
-        WC()->cart->add_fee(__('Shipping Fee', 'checkout-wc'), $fee_amount);
+    $fee_amount = WC()->session->get('custom_shipping_fee');
+    
+    if (!$fee_amount || $fee_amount <= 0) {
+        return;
     }
+
+    WC()->cart->add_fee(__('Shipping Fee', 'checkout-wc'), $fee_amount);
 }
 
 add_action('wp_ajax_checkout_after_customer_save', 'calculate_ship_fee');
@@ -132,7 +134,7 @@ function get_distance_ors($origin, $destination) {
     if (!isset($data['routes'][0]['summary']['distance'])) {
         return null;
     }
-
+	
     $distance_km = $data['routes'][0]['summary']['distance'] / 1000;
     return round($distance_km * 0.621371, 1); 
 }
@@ -161,6 +163,7 @@ function calculate_ship_fee() {
 
 	WC()->session->set('custom_shipping_fee', $ship_fee);
 	WC()->cart->calculate_fees();
+	WC()->cart->calculate_totals();
 
     $response = array('success' => true, 'message' => 'Shipping Updated', 'fee' => $ship_fee . 'distance_miles' . $distance_miles);
     wp_send_json($response);
